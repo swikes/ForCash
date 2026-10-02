@@ -1,0 +1,26 @@
+{
+  // Essai sans installation dans GitHub Codespaces : l'application s'installe,
+  // crée l'école de démo et démarre toute seule (identifiant directeur.demo,
+  // mot de passe Demo-ScolaPay-2026).
+  "name": "ScolaPay",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "python -m pip install --user --disable-pip-version-check -r requirements.txt && ([ -f .env ] || cp .env.example .env) && python manage.py migrate --noinput && python manage.py demo --password Demo-ScolaPay-2026 --si-absente",
+  "postAttachCommand": {
+    "ScolaPay": "python manage.py runserver 0.0.0.0:8000"
+  },
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "ScolaPay",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["README.md"]
+    },
+    "vscode": {
+      "extensions": ["ms-python.python"]
+    }
+  }
+}

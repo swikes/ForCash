@@ -10,6 +10,8 @@ from pathlib import Path
 import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 
+from .hosts import platform_hosts
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -42,13 +44,17 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured(
-            "DJANGO_SECRET_KEY doit être défini en production "
-            "(ou lancez en local avec DJANGO_DEBUG=1)."
+            "Configuration manquante. Sur votre ordinateur : lancez demarrer.bat (Windows) "
+            "ou demarrer.sh (Mac/Linux), ou copiez .env.example en .env. "
+            "En production : définissez DJANGO_SECRET_KEY."
         )
     SECRET_KEY = "dev-uniquement-ne-pas-utiliser-en-production"
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1" if DEBUG else "")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+_platform_hosts, _platform_origins = platform_hosts(os.environ)
+ALLOWED_HOSTS += _platform_hosts
+CSRF_TRUSTED_ORIGINS += _platform_origins
 
 INSTALLED_APPS = [
     "django.contrib.admin",

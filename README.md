@@ -83,24 +83,57 @@ J'ai comparé les idées qu'on conseille le plus souvent en Afrique de l'Ouest :
 - **Import Excel/CSV**, exports, journal de caisse imprimable.
 - **12 pays** pris en charge : formats de téléphone et monnaies (FCFA, GNF, FC, Ariary).
 - **Une école de démonstration réaliste** (276 élèves) pour les rendez-vous commerciaux.
-- **45 tests automatiques.**
+- **52 tests automatiques.**
 
 ---
 
-## Essayer l'application en 5 minutes
+## Essayer l'application
 
-```bash
-git clone https://github.com/swikes/ForCash.git && cd ForCash
-python -m venv .venv && source .venv/bin/activate   # Windows : .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env                                # Windows : copy .env.example .env
-python manage.py migrate
-python manage.py demo --password "ChoisisUnMotDePasse"
-python manage.py runserver
-```
+> **Important :** `127.0.0.1` veut dire « cet appareil-ci ». Ce lien ne fonctionne que sur l'ordinateur où l'application est lancée, et seulement tant que sa fenêtre reste ouverte. Il ne fonctionnera jamais depuis un téléphone ou un autre ordinateur.
 
-Ouvre <http://127.0.0.1:8000> et connecte-toi avec **`directeur.demo`** ou **`caisse.demo`**.
-La mise en ligne pour de vraies écoles est expliquée dans le [guide technique](docs/05-guide-technique.md#2-mettre-en-ligne).
+Choisis l'une des trois méthodes. Dans tous les cas, connecte-toi avec **`directeur.demo`** (vue de la direction) ou **`caisse.demo`** (vue de la caisse).
+
+### Option 1 : sur ton ordinateur Windows, Mac ou Linux
+
+1. Installe [Python](https://www.python.org/downloads/) (version 3.10 ou plus récente). Sous Windows, coche **« Add python.exe to PATH »** au début de l'installation.
+2. Sur cette page GitHub, clique sur le bouton vert **Code**, puis **Download ZIP**, et décompresse le fichier.
+3. Dans le dossier décompressé :
+   - **Windows** : double-clique sur **`demarrer.bat`**. Si Windows affiche un avertissement, clique sur « Informations complémentaires », puis « Exécuter quand même ».
+   - **Mac ou Linux** : ouvre un terminal dans le dossier et tape `sh demarrer.sh`.
+4. Le navigateur s'ouvre tout seul sur <http://127.0.0.1:8000>. Le mot de passe est **`Demo-ScolaPay-2026`**.
+
+La première fois, l'installation prend 1 à 2 minutes. **Laisse la fenêtre du lanceur ouverte** : la fermer arrête l'application.
+
+### Option 2 : sans rien installer, depuis le navigateur d'un ordinateur
+
+[![Ouvrir dans GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/swikes/ForCash?quickstart=1)
+
+1. Clique sur le bouton, puis sur **Create codespace**. Il faut un compte GitHub ; GitHub offre un quota gratuit chaque mois.
+2. Après 2 à 3 minutes, l'application s'installe, démarre et s'ouvre dans un nouvel onglet. Si l'onglet ne s'ouvre pas, va dans l'onglet **Ports** en bas de l'écran et clique sur l'icône 🌐 de la ligne « ScolaPay ».
+3. Le mot de passe est **`Demo-ScolaPay-2026`**.
+
+Arrête le codespace quand tu as fini (menu Codespaces, puis Stop) pour ne pas consommer ton quota.
+
+### Option 3 : une démo en ligne, ouvrable depuis un téléphone
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/swikes/ForCash)
+
+1. Crée un compte gratuit sur Render (tu peux te connecter avec GitHub), puis clique sur le bouton.
+2. Choisis un mot de passe dans le champ `SCOLAPAY_DEMO_PASSWORD` et valide.
+3. Environ 5 minutes plus tard, ta démo est en ligne à une adresse du type `https://scolapay-demo.onrender.com`. Elle s'ouvre depuis n'importe quel téléphone : pratique pour tes rendez-vous avec les écoles.
+
+L'offre gratuite se met en veille après 15 minutes sans visite : le chargement suivant prend alors environ une minute. Les données sont aussi remises à zéro à chaque redémarrage. Pour de vraies écoles, suis le [guide technique](docs/05-guide-technique.md#2-mettre-en-ligne).
+
+### Ça ne marche pas ?
+
+| Ce que tu vois | Que faire |
+|---|---|
+| « Ce site est inaccessible » ou `ERR_CONNECTION_REFUSED` sur 127.0.0.1 | L'application ne tourne pas sur cet appareil. Lance `demarrer.bat` ou `demarrer.sh` (option 1) et garde la fenêtre ouverte. Sur un téléphone, utilise l'option 3. |
+| « Python 3.10 ou plus récent est introuvable » | Installe Python en cochant « Add python.exe to PATH », puis relance. |
+| « Identifiant ou mot de passe incorrect » | Options 1 et 2 : `Demo-ScolaPay-2026`. Option 3 : le mot de passe choisi sur Render. |
+| Une autre erreur dans la fenêtre du lanceur | Copie le message et envoie-le à Claude. |
+
+L'installation manuelle, pour les développeurs, est décrite dans le [guide technique](docs/05-guide-technique.md#1-lancer-lapplication-sur-ton-ordinateur-10-minutes).
 
 ---
 

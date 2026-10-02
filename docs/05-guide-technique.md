@@ -6,7 +6,13 @@ L'application est écrite en **Python / Django** : une technologie solide, répa
 
 ## 1. Lancer l'application sur ton ordinateur (10 minutes)
 
-Prérequis : [Python 3.11 ou plus récent](https://www.python.org/downloads/). Sous Windows, coche « Add Python to PATH » pendant l'installation.
+> `http://127.0.0.1:8000` ne fonctionne que **sur l'ordinateur où l'application tourne**, et tant que le serveur est lancé.
+
+**Le plus simple : les lanceurs.** Après avoir installé [Python 3.10 ou plus récent](https://www.python.org/downloads/) (sous Windows, coche « Add python.exe to PATH »), double-clique sur `demarrer.bat` (Windows) ou lance `sh demarrer.sh` (Mac/Linux). Le lanceur crée l'environnement Python, installe les dépendances, prépare la base et l'école de démo, puis ouvre le navigateur. Identifiants : `directeur.demo` ou `caisse.demo`, mot de passe `Demo-ScolaPay-2026`. Les lancements suivants prennent quelques secondes et conservent tes données.
+
+**Sans rien installer** : GitHub Codespaces (bouton dans le README). La configuration se trouve dans `.devcontainer/devcontainer.json`, et l'adresse du codespace est autorisée automatiquement (`scolapay/hosts.py`).
+
+**À la main** (pour les développeurs) :
 
 ```bash
 # 1. Récupérer le code
@@ -40,7 +46,7 @@ Ouvre <http://127.0.0.1:8000> et connecte-toi avec `directeur.demo` (vue directi
 python manage.py test
 ```
 
-Ils sont 45. Ils couvrent les calculs de soldes, le cloisonnement entre écoles, les reçus, les annulations, l'import Excel, les relances, le portail parent et le paiement en ligne (démo et CinetPay simulé). Lance-les avant chaque mise en ligne.
+Ils sont 52. Ils couvrent les calculs de soldes, le cloisonnement entre écoles, les reçus, les annulations, l'import Excel, les relances, le portail parent, le paiement en ligne (démo et CinetPay simulé) et la connexion derrière les proxys de Codespaces et de Render. Lance-les avant chaque mise en ligne.
 
 ---
 
@@ -80,9 +86,11 @@ Fais pointer le DNS du domaine (enregistrement A) vers l'adresse IP du serveur. 
 
 1. Crée un service web à partir de ce dépôt. Le `Dockerfile` et le `Procfile` sont fournis.
 2. Ajoute une base **PostgreSQL** gérée et renseigne `DATABASE_URL`. Ajoute aussi `psycopg[binary]` dans `requirements.txt` (la ligne est déjà présente en commentaire).
-3. Définis les mêmes variables d'environnement que ci-dessus (sans `DOMAIN`).
+3. Définis les mêmes variables d'environnement que ci-dessus (sans `DOMAIN`). Sur Render, l'adresse `….onrender.com` est autorisée automatiquement.
 
 > Sur ces plateformes, le disque est effacé à chaque redéploiement : **n'y utilise pas SQLite**, prends PostgreSQL.
+
+**Démo en ligne en un clic (Render, offre gratuite).** Le fichier `render.yaml` décrit une démo prête à l'emploi : le bouton « Deploy to Render » du README crée le service, génère la clé secrète et demande un mot de passe (`SCOLAPAY_DEMO_PASSWORD`). Au démarrage, `deploy/entrypoint.sh` applique les migrations et crée l'école de démo si elle n'existe pas. En offre gratuite, la base SQLite est effacée à chaque redémarrage : c'est parfait pour une démo, mais **inadapté à de vraies écoles**.
 
 ### Variables d'environnement
 
@@ -96,6 +104,7 @@ Fais pointer le DNS du domaine (enregistrement A) vers l'adresse IP du serveur. 
 | `TIME_ZONE` | Fuseau horaire | `Africa/Abidjan`, `Africa/Dakar`, `Africa/Douala` |
 | `DJANGO_HSTS_SECONDS` | Active HSTS une fois le HTTPS confirmé | `31536000` |
 | `PAYMENT_HTTP_TIMEOUT` | Délai maximal des appels aux agrégateurs (secondes) | `20` |
+| `SCOLAPAY_DEMO_PASSWORD` | Démo en ligne uniquement : crée l'école de démo au démarrage, avec ce mot de passe | `UnMotDePasseSolide` |
 
 ---
 
@@ -186,9 +195,11 @@ Ajoute ensuite le choix dans `School.PROVIDER_CHOICES` et dans `get_provider()`.
 ```
 ForCash/
 ├── manage.py
-├── requirements.txt, Dockerfile, docker-compose.yml, Procfile
-├── deploy/                  Caddyfile (HTTPS), sauvegarde.sh
-├── scolapay/                configuration Django (settings, urls)
+├── demarrer.bat, demarrer.sh lanceurs en un clic (Windows, Mac/Linux)
+├── requirements.txt, Dockerfile, docker-compose.yml, Procfile, render.yaml
+├── .devcontainer/           essai sans installation (GitHub Codespaces)
+├── deploy/                  entrypoint.sh, Caddyfile (HTTPS), sauvegarde.sh
+├── scolapay/                configuration Django (settings, urls, hosts)
 ├── ecoles/                  l'application métier
 │   ├── models.py            écoles, années, barèmes, classes, élèves, paiements, relances
 │   ├── finance.py           calcul des soldes, retards et taux de recouvrement
@@ -200,7 +211,7 @@ ForCash/
 │   ├── utils.py             pays, monnaies, téléphones, montants en lettres
 │   ├── management/commands/ demo, creer_ecole
 │   ├── templates/, static/  pages et style (aucune dépendance externe)
-│   └── tests/               45 tests automatiques
+│   └── tests/               52 tests automatiques
 └── docs/                    business plan, plan 90 jours, kit commercial, finances, guides
 ```
 

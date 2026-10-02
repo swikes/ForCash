@@ -1,0 +1,17 @@
+# Démo en ligne sur Render (offre gratuite) : bouton « Deploy to Render » du README.
+# ATTENTION : en offre gratuite, la base SQLite est effacée à chaque redémarrage
+# (l'école de démo est alors recréée). Pour de vraies écoles, utilisez PostgreSQL
+# (voir docs/05-guide-technique.md).
+services:
+  - type: web
+    name: scolapay-demo
+    runtime: docker
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: SCOLAPAY_DEMO_PASSWORD
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "2"

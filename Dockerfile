@@ -11,6 +11,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN DJANGO_DEBUG=1 python manage.py collectstatic --noinput
 
-# Les migrations s'appliquent à chaque démarrage (sans effet si déjà faites).
-CMD python manage.py migrate --noinput && \
-    gunicorn scolapay.wsgi:application --bind 0.0.0.0:${PORT} --workers 3 --timeout 60
+# Migrations à chaque démarrage (sans effet si déjà faites), puis gunicorn.
+# Si SCOLAPAY_DEMO_PASSWORD est défini, l'école de démo est créée au besoin.
+CMD ["sh", "deploy/entrypoint.sh"]

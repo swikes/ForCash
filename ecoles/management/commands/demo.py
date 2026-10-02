@@ -3,6 +3,8 @@ Crée une école de démonstration réaliste pour vos rendez-vous commerciaux.
 
     python manage.py demo                 # mot de passe aléatoire affiché
     python manage.py demo --password XXX  # mot de passe choisi
+    python manage.py demo --password XXX --si-absente
+        # ne recrée rien si l'école existe déjà (remet juste le mot de passe)
 """
 import random
 import secrets
@@ -63,27 +65,68 @@ CLASSES = [
 METHODS = [("especes", 45), ("wave", 25), ("orange_money", 15), ("mtn_momo", 10), ("moov_money", 5)]
 
 
+DEMO_SLUG = "demo-les-etoiles"
+DEMO_ACCOUNTS = [
+    ("directeur.demo", "Awa", "KONÉ (démo)", StaffMember.DIRECTOR),
+    ("caisse.demo", "Serge", "YAO (démo)", StaffMember.CASHIER),
+]
+
+
 class Command(BaseCommand):
     help = "Crée (ou recrée) l'école de démonstration « Groupe Scolaire Les Étoiles »."
 
     def add_arguments(self, parser):
         parser.add_argument("--password", help="Mot de passe des comptes de démo (sinon aléatoire).")
         parser.add_argument("--seed", type=int, default=2026, help="Graine aléatoire (données reproductibles).")
+        parser.add_argument(
+            "--si-absente",
+            action="store_true",
+            dest="if_missing",
+            help="Si l'école de démo existe déjà, la garder telle quelle (seul le mot de passe est remis).",
+        )
+
+    def ensure_accounts(self, school, password):
+        """Crée ou réactive les comptes de démo, avec le mot de passe donné."""
+        User = get_user_model()
+        accounts = {}
+        for username, first_name, last_name, role in DEMO_ACCOUNTS:
+            user, _ = User.objects.get_or_create(username=username)
+            user.first_name, user.last_name, user.is_active = first_name, last_name, True
+            user.set_password(password)
+            user.save()
+            StaffMember.objects.update_or_create(user=user, defaults={"school": school, "role": role})
+            accounts[username] = user
+        return accounts
+
+    def print_credentials(self, password):
+        self.stdout.write("Connexion direction : directeur.demo")
+        self.stdout.write("Connexion caisse    : caisse.demo")
+        self.stdout.write(f"Mot de passe        : {password}")
 
     @transaction.atomic
     def handle(self, *args, **options):
+        existing = School.objects.filter(slug=DEMO_SLUG).first()
+        if existing and options["if_missing"]:
+            self.stdout.write(self.style.SUCCESS("L'école de démo existe déjà : ses données sont conservées."))
+            if options["password"]:
+                self.ensure_accounts(existing, options["password"])
+                self.print_credentials(options["password"])
+            else:
+                self.print_credentials("(inchangé)")
+            return
+
         rng = random.Random(options["seed"])
         password = options["password"] or secrets.token_urlsafe(9)
         today = timezone.localdate()
         start_year = today.year if today.month >= 8 else today.year - 1
 
         User = get_user_model()
-        User.objects.filter(username__in=["directeur.demo", "caisse.demo"]).delete()
-        School.objects.filter(slug="demo-les-etoiles").delete()
+        User.objects.filter(username__in=[account[0] for account in DEMO_ACCOUNTS]).delete()
+        School.objects.filter(slug=DEMO_SLUG).delete()
 
         school = School.objects.create(
             name="Groupe Scolaire Les Étoiles (démo)",
-            slug="demo-les-etoiles",
+            slug=DEMO_SLUG,
             country="CI",
             currency="XOF",
             city="Abidjan — Cocody",
@@ -100,14 +143,7 @@ class Command(BaseCommand):
             subscription_until=date(start_year + 1, 8, 31),
             is_demo=True,
         )
-        director = User.objects.create_user(
-            "directeur.demo", password=password, first_name="Awa", last_name="KONÉ (démo)"
-        )
-        cashier = User.objects.create_user(
-            "caisse.demo", password=password, first_name="Serge", last_name="YAO (démo)"
-        )
-        StaffMember.objects.create(user=director, school=school, role=StaffMember.DIRECTOR)
-        StaffMember.objects.create(user=cashier, school=school, role=StaffMember.CASHIER)
+        cashier = self.ensure_accounts(school, password)["caisse.demo"]
 
         year = SchoolYear.objects.create(
             school=school,
@@ -184,9 +220,7 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS(f"École de démo créée : {counter} élèves, {len(planned)} paiements."))
-        self.stdout.write("Connexion direction : directeur.demo")
-        self.stdout.write("Connexion caisse    : caisse.demo")
-        self.stdout.write(f"Mot de passe        : {password}")
+        self.print_credentials(password)
 
     def plan_payments(self, rng, enrollment, items, discount, today):
         """Simule trois profils de parents : ponctuel, en retard, mauvais payeur."""

@@ -1,0 +1,35 @@
+{% extends "ecoles/base.html" %}
+{% block title %}Barème{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if schedule %}Barème « {{ schedule.name }} »{% else %}Nouveau barème{% endif %}</h1>
+    <small>Listez les échéances dans l'ordre : inscription, 1re tranche, 2e tranche… Laissez vides les lignes inutiles.</small>
+  </div>
+</div>
+<form method="post" class="card">
+  {% csrf_token %}
+  {% include "ecoles/_form_fields.html" %}
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<ul class="messages"><li class="error">{{ formset.non_form_errors|join:" " }}</li></ul>{% endif %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Libellé</th><th>Montant</th><th>Date limite</th><th>Supprimer</th></tr></thead>
+      <tbody>
+      {% for f in formset %}
+        <tr>
+          <td>{% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}{{ f.label }}{{ f.label.errors }}</td>
+          <td>{{ f.amount }}{{ f.amount.errors }}</td>
+          <td>{{ f.due_date }}{{ f.due_date.errors }}</td>
+          <td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:.5rem;margin-top:1rem">
+    <button class="btn primary" type="submit">Enregistrer</button>
+    <a class="btn" href="{% url 'classes' %}">Annuler</a>
+  </div>
+</form>
+{% endblock %}

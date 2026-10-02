@@ -1,0 +1,52 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Réinscriptions{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Réinscriptions</h1>
+    <small>Faire passer les élèves de {{ previous_year.name }} dans leur classe de {{ current_year.name }}.</small>
+  </div>
+</div>
+<form method="get" class="card filters">
+  <div>
+    <label for="source">Classe de {{ previous_year.name }}</label>
+    <select id="source" name="source">
+      {% for c in form.fields.source.queryset %}<option value="{{ c.pk }}" {% if form.fields.source.initial == c %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <button class="btn" type="submit">Voir les élèves</button>
+</form>
+
+{% if candidates %}
+<form method="post" class="card">
+  {% csrf_token %}
+  <input type="hidden" name="source" value="{{ form.fields.source.initial.pk }}">
+  <div class="field" style="max-width:320px">
+    <label for="target">Nouvelle classe ({{ current_year.name }})</label>
+    <select id="target" name="target" required>
+      {% for c in form.fields.target.queryset %}<option value="{{ c.pk }}">{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th><input type="checkbox" checked onclick="document.querySelectorAll('input[name=eleves]:not(:disabled)').forEach(c => c.checked = this.checked)" aria-label="Tout cocher"></th><th>Élève</th><th class="num">Reste dû {{ previous_year.name }}</th><th></th></tr></thead>
+      <tbody>
+      {% for c in candidates %}
+        <tr>
+          <td><input type="checkbox" name="eleves" value="{{ c.enrollment.student_id }}" {% if c.done %}disabled{% else %}checked{% endif %} aria-label="Sélectionner {{ c.enrollment.student.full_name }}"></td>
+          <td>{{ c.enrollment.student.full_name }}</td>
+          <td class="num">{% if c.balance.remaining > 0 %}<strong style="color:var(--danger)">{{ c.balance.remaining|amount }}</strong>{% else %}0{% endif %}</td>
+          <td>{% if c.done %}<span class="badge a_jour">déjà réinscrit</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p><small>Les arriérés de l'an dernier restent visibles sur la fiche de l'élève et dans l'espace parent.</small></p>
+  <button class="btn primary" type="submit">Réinscrire les élèves cochés</button>
+</form>
+{% endif %}
+{% endwith %}
+{% endblock %}

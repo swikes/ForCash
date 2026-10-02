@@ -1,0 +1,63 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Journal de caisse{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Journal de caisse</h1>
+    <small>Du {{ start|date:"d/m/Y" }} au {{ end|date:"d/m/Y" }} — total encaissé <strong>{{ total|money:cur }}</strong></small>
+  </div>
+  <div class="actions">
+    <button class="btn no-print" type="button" onclick="window.print()">Imprimer</button>
+    <a class="btn no-print" href="?{{ querystring }}{% if querystring %}&amp;{% endif %}format=csv">Exporter</a>
+  </div>
+</div>
+<form class="card filters no-print" method="get">
+  <div><label for="du">Du</label><input type="date" id="du" name="du" value="{{ start|date:'Y-m-d' }}"></div>
+  <div><label for="au">Au</label><input type="date" id="au" name="au" value="{{ end|date:'Y-m-d' }}"></div>
+  <div>
+    <label for="mode">Mode</label>
+    <select id="mode" name="mode"><option value="">Tous</option>{% for code, label in methods %}<option value="{{ code }}" {% if filters.mode == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+  </div>
+  <div>
+    <label for="caisse">Saisi par</label>
+    <select id="caisse" name="caisse"><option value="">Tout le monde</option>{% for u in cashiers %}<option value="{{ u.pk }}" {% if filters.caisse == u.pk|stringformat:"s" %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select>
+  </div>
+  <button class="btn primary" type="submit">Afficher</button>
+</form>
+
+{% if by_method %}
+<div class="kpis">
+  {% for row in by_method %}
+  <div class="kpi brand"><div class="label">{{ row.label }}</div><div class="value">{{ row.total|money:cur }}</div><div class="hint">{{ row.count }} paiement{{ row.count|pluralize }}</div></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Reçu</th><th>Élève</th><th>Mode</th><th class="hide-sm">Référence</th><th class="hide-sm">Saisi par</th><th class="num">Montant</th></tr></thead>
+      <tbody>
+      {% for p in payments %}
+        <tr class="{% if p.is_cancelled %}cancelled{% endif %}">
+          <td class="nowrap">{{ p.paid_on|date:"d/m/Y" }}</td>
+          <td><a href="{% url 'payment_receipt' p.pk %}">{{ p.receipt_label }}</a></td>
+          <td>{{ p.enrollment.student.full_name }} <small>{{ p.enrollment.classroom.name }}</small></td>
+          <td>{{ p.get_method_display }}</td>
+          <td class="hide-sm">{{ p.reference }}</td>
+          <td class="hide-sm">{{ p.recorded_by.get_username|default:"en ligne" }}</td>
+          <td class="num">{{ p.amount|amount }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">Aucun paiement sur la période.</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if payments %}<tfoot><tr><td colspan="6">Total (hors reçus annulés)</td><td class="num">{{ total|amount }}</td></tr></tfoot>{% endif %}
+    </table>
+  </div>
+</div>
+<p class="muted"><small>Astuce anti-fraude : chaque soir, comparez le total « Espèces » de chaque caissier avec l'argent remis. Les reçus annulés restent visibles, barrés.</small></p>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "ecoles/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{{ title }}</h1></div>
+<form method="post" class="card">
+  {% csrf_token %}
+  {% include "ecoles/_form_fields.html" with grid=True %}
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+    <button class="btn primary" type="submit">Enregistrer</button>
+    {% if not enrollment %}<button class="btn" type="submit" name="encore" value="1">Enregistrer et ajouter un autre</button>{% endif %}
+    <a class="btn" href="{% if enrollment %}{% url 'student_detail' enrollment.pk %}{% else %}{% url 'student_list' %}{% endif %}">Annuler</a>
+  </div>
+</form>
+{% endblock %}

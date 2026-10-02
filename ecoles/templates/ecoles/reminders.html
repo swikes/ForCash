@@ -1,0 +1,54 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Relances{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Relances</h1>
+    <small>{{ items|length }} élève{{ items|length|pluralize }} en retard · {{ total_overdue|money:cur }} à récupérer</small>
+  </div>
+</div>
+<form class="card filters" method="get">
+  <div>
+    <label for="classe">Classe</label>
+    <select id="classe" name="classe" onchange="this.form.submit()">
+      <option value="">Toutes les classes</option>
+      {% for c in classrooms %}<option value="{{ c.pk }}" {% if classe == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <noscript><button class="btn primary" type="submit">Filtrer</button></noscript>
+</form>
+<div class="callout info">Un clic sur « WhatsApp » ouvre la conversation avec le parent, message déjà rédigé (montant, échéance, lien de paiement). Il ne reste qu'à appuyer sur « Envoyer ». La relance est notée dans l'historique.{% if school.is_demo %} <strong>École de démo : WhatsApp vous laissera choisir le destinataire.</strong>{% endif %}</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Élève</th><th class="hide-sm">Parent</th><th class="num">En retard</th><th class="hide-sm">Dernière relance</th><th></th></tr></thead>
+      <tbody>
+      {% for item in items %}
+        {% with e=item.enrollment b=item.balance %}
+        <tr>
+          <td><a href="{% url 'student_detail' e.pk %}"><strong>{{ e.student.full_name }}</strong></a><br><small>{{ e.classroom.name }}</small></td>
+          <td class="hide-sm">{{ e.student.parent_name|default:"—" }}<br><small>{% if item.phone_ok %}{{ e.student.parent_phone }}{% else %}<span style="color:var(--danger)">n° à vérifier</span>{% endif %}</small></td>
+          <td class="num"><strong>{{ b.overdue|amount }}</strong></td>
+          <td class="hide-sm">{% if item.last_reminder %}{{ item.last_reminder.created_at|date:"d/m" }} <small>({{ item.last_reminder.get_channel_display }})</small>{% else %}<small class="muted">jamais</small>{% endif %}</td>
+          <td class="right">
+            <div class="row-actions">
+              <form method="post" action="{% url 'reminder_send' e.pk %}" target="_blank" class="inline-form">
+                {% csrf_token %}<input type="hidden" name="canal" value="whatsapp">
+                <button class="btn small whatsapp" type="submit">WhatsApp</button>
+              </form>
+              <a class="btn small" href="{% url 'payment_create' e.pk %}">Encaisser</a>
+            </div>
+          </td>
+        </tr>
+        {% endwith %}
+      {% empty %}
+        <tr><td colspan="5" class="muted">Aucun retard. Bravo !</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

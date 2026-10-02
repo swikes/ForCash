@@ -1,0 +1,64 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Classes et frais{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Classes et frais de scolarité</h1>
+    <small>Année {{ current_year.name }}. Un barème (ex. « Primaire ») = la liste des échéances, partagée par plusieurs classes.</small>
+  </div>
+  {% if staff.is_director %}
+  <div class="actions">
+    <a class="btn" href="{% url 'reenroll' %}">Réinscriptions</a>
+    <a class="btn" href="{% url 'schedule_create' %}">+ Barème</a>
+    <a class="btn primary" href="{% url 'classroom_create' %}">+ Classe</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Barèmes</h2>
+    {% for s in schedules %}
+      <div style="margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+          <h3 style="margin:0">{{ s.name }} — {{ s.total|money:cur }}</h3>
+          {% if staff.is_director %}<a class="btn small" href="{% url 'schedule_edit' s.pk %}">Modifier</a>{% endif %}
+        </div>
+        <table>
+          <tbody>
+          {% for i in s.installments.all %}
+            <tr><td>{{ i.label }}</td><td class="nowrap">{{ i.due_date|date:"d/m/Y" }}</td><td class="num">{{ i.amount|amount }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% empty %}
+      <p class="muted">Aucun barème. {% if staff.is_director %}<a href="{% url 'schedule_create' %}">Créer le premier barème</a> (ex. : Inscription 25 000 au 1er sept., 1re tranche 50 000 au 15 oct.…).{% endif %}</p>
+    {% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Classes</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Classe</th><th>Barème</th><th class="num">Élèves</th><th></th></tr></thead>
+        <tbody>
+        {% for c in classrooms %}
+          <tr>
+            <td><a href="{% url 'student_list' %}?classe={{ c.pk }}">{{ c.name }}</a></td>
+            <td>{% if c.schedule %}{{ c.schedule.name }}{% else %}<span class="badge en_retard">aucun</span>{% endif %}</td>
+            <td class="num">{{ c.students }}</td>
+            <td class="right">{% if staff.is_director %}<a class="btn small" href="{% url 'classroom_edit' c.pk %}">Modifier</a>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="muted">Aucune classe. Elles peuvent aussi être créées automatiquement lors de l'import des élèves.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endwith %}
+{% endblock %}

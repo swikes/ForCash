@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#0d7346">
+  <title>{% block title %}{{ school.name }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'ecoles/style.css' %}?v=1">
+</head>
+<body class="public">
+<header class="public-header">
+  <div class="inner">
+    <div class="title">{{ school.name }}</div>
+    <small>{% if school.city %}{{ school.city }} · {% endif %}{% if school.phone %}Tél. {{ school.phone }}{% endif %}</small>
+  </div>
+</header>
+<main>
+  {% if messages %}
+  <ul class="messages">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+<footer class="public-footer">Service de paiement des scolarités propulsé par ScolaPay</footer>
+</body>
+</html>

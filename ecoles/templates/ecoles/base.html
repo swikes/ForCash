@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d7346">
+  <title>{% block title %}ScolaPay{% endblock %} · {{ school.name|default:"ScolaPay" }}</title>
+  <link rel="stylesheet" href="{% static 'ecoles/style.css' %}?v=1">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% with url_name=request.resolver_match.url_name %}
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{% url 'dashboard' %}">Scola<span>Pay</span></a>
+    <span class="school-name">{{ school.name }}{% if current_year %} · {{ current_year.name }}{% endif %}{% if school.is_demo %} · <strong>DÉMO</strong>{% endif %}</span>
+    <span class="spacer"></span>
+    <span class="user hide-sm">{{ request.user.get_full_name|default:request.user.username }} — {{ staff.get_role_display }} · <a href="{% url 'password_change' %}" style="color:#fff">mot de passe</a></span>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit">Déconnexion</button></form>
+  </div>
+</header>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}">Tableau de bord</a>
+    <a href="{% url 'student_list' %}" class="{% if url_name in 'student_list student_detail student_create student_edit payment_create student_import' %}active{% endif %}">Élèves</a>
+    <a href="{% url 'reminders' %}" class="{% if url_name == 'reminders' %}active{% endif %}">Relances</a>
+    <a href="{% url 'cash_journal' %}" class="{% if url_name in 'cash_journal payment_receipt' %}active{% endif %}">Caisse</a>
+    <a href="{% url 'classes' %}" class="{% if url_name in 'classes classroom_create classroom_edit schedule_create schedule_edit reenroll' %}active{% endif %}">Classes &amp; frais</a>
+    {% if staff.is_director %}<a href="{% url 'school_settings' %}" class="{% if url_name in 'school_settings staff_create year_create' %}active{% endif %}">Paramètres</a>{% endif %}
+  </div>
+</nav>
+{% endwith %}
+<main>
+  {% if messages %}
+  <ul class="messages">{% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

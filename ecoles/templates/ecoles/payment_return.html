@@ -1,0 +1,22 @@
+{% extends "ecoles/public_base.html" %}
+{% load scolapay %}
+{% block title %}Paiement — {{ school.name }}{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<section class="card" style="text-align:center">
+  {% if tx.status == "accepte" %}
+    <div class="verified" style="justify-content:center">✓ Paiement confirmé</div>
+    <p>Merci ! {{ tx.amount|money:cur }} ont été crédités sur la scolarité de <strong>{{ tx.enrollment.student.first_name }}</strong>.</p>
+    {% if tx.payment %}<p><a class="btn primary" href="{% url 'public_receipt' tx.payment.token %}">Voir mon reçu n° {{ tx.payment.receipt_label }}</a></p>{% endif %}
+  {% elif tx.status == "refuse" %}
+    <h1>Paiement non abouti</h1>
+    <p>Aucun montant n'a été débité. Vous pouvez réessayer.</p>
+  {% else %}
+    <h1>Paiement en cours de confirmation…</h1>
+    <p>L'opérateur n'a pas encore confirmé. Validez la demande sur votre téléphone si besoin, puis actualisez cette page.</p>
+    <p><a class="btn" href="">Actualiser</a></p>
+  {% endif %}
+  <p><a href="{% url 'parent_portal' tx.enrollment.student.token %}">Retour à l'espace parent</a></p>
+</section>
+{% endwith %}
+{% endblock %}

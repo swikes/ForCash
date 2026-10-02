@@ -1,0 +1,36 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Encaisser{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Encaisser un paiement</h1>
+    <small><a href="{% url 'student_detail' enrollment.pk %}">{{ enrollment.student.full_name }}</a> · {{ enrollment.classroom.name }}</small>
+  </div>
+</div>
+<div class="grid grid-2">
+  <form method="post" class="card">
+    {% csrf_token %}
+    {% if balance.remaining <= 0 %}
+      <div class="callout">{% if balance.total %}Cet élève a soldé sa scolarité.{% else %}Aucun montant dû : la classe n'a pas de barème.{% endif %}</div>
+    {% endif %}
+    {% include "ecoles/_form_fields.html" %}
+    <button class="btn primary block" type="submit">Valider et éditer le reçu</button>
+  </form>
+  <section class="card">
+    <h2>Situation</h2>
+    <p>Impayé exigible : <strong>{{ balance.overdue|money:cur }}</strong><br>
+      Reste à payer sur l'année : <strong>{{ balance.remaining|money:cur }}</strong></p>
+    <table>
+      <tbody>
+      {% for line in balance.lines %}
+        <tr><td>{{ line.label }}<br><small>{{ line.due_date|date:"d/m/Y" }}</small></td><td class="num">{{ line.remaining|amount }}</td><td><span class="badge {{ line.state }}">{{ line.state_label }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p style="margin-top:.75rem"><small>Chaque paiement reçoit un numéro de reçu unique. Il ne peut pas être supprimé : seule la direction peut l'annuler, avec un motif.</small></p>
+  </section>
+</div>
+{% endwith %}
+{% endblock %}

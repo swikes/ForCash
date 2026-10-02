@@ -1,0 +1,39 @@
+{% extends "ecoles/base.html" %}
+{% block title %}Importer des élèves{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Importer des élèves</h1>
+    <small>Depuis Excel : « Fichier › Enregistrer sous › CSV (séparateur : point-virgule) ».</small>
+  </div>
+  <div class="actions"><a class="btn" href="{% url 'import_template' %}">Télécharger le modèle</a></div>
+</div>
+<div class="grid grid-2">
+  <form method="post" enctype="multipart/form-data" class="card">
+    {% csrf_token %}
+    {% include "ecoles/_form_fields.html" %}
+    <button class="btn primary" type="submit">Importer</button>
+  </form>
+  <section class="card">
+    <h2>Colonnes reconnues</h2>
+    <p><strong>Obligatoires :</strong> Nom, Classe.<br>
+      <strong>Facultatives :</strong> Prénoms, Matricule, Sexe, Parent, Téléphone, Téléphone 2, Remise.</p>
+    <p><small>Un élève dont le matricule existe déjà est mis à jour (pas de doublon). Vous pouvez donc ré-importer le fichier corrigé sans risque.</small></p>
+  </section>
+</div>
+{% if report %}
+<section class="card">
+  <h2>Résultat</h2>
+  <p>{{ report.created }} ajouté(s), {{ report.updated }} mis à jour.{% if report.classes_created %} Classes créées : {{ report.classes_created|join:", " }}.{% endif %}</p>
+  {% if report.errors %}
+    <h3>Lignes ignorées</h3>
+    <ul>{% for line, msg in report.errors %}<li>Ligne {{ line }} : {{ msg }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if report.warnings %}
+    <h3>À vérifier</h3>
+    <ul>{% for line, msg in report.warnings %}<li>Ligne {{ line }} : {{ msg }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if report.classes_created %}<div class="callout">Pensez à affecter un barème aux nouvelles classes : <a href="{% url 'classes' %}">Classes et frais</a>.</div>{% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "ecoles/public_base.html" %}
+{% load scolapay %}
+{% block title %}Paiement de démonstration{% endblock %}
+{% block content %}
+<div class="callout">Démonstration : aucun argent réel n'est débité. En production, cette étape est la page sécurisée de l'opérateur (Wave, Orange Money, MTN, Moov…).</div>
+<div class="demo-phone">
+  <div class="screen">
+    <p class="muted" style="margin:0">Paiement marchand</p>
+    <h2 style="margin:.25rem 0">{{ school.name }}</h2>
+    <p>Scolarité de {{ tx.enrollment.student.first_name }} {{ tx.enrollment.student.last_name }}</p>
+    <div class="amount-big">{{ tx.amount|money:school.currency_symbol }}</div>
+    <p><small>Référence {{ tx.reference }}</small></p>
+    {% if tx.status == "en_attente" %}
+    <form method="post" style="display:grid;gap:.5rem">
+      {% csrf_token %}
+      <button class="btn primary" type="submit" name="action" value="valider">Confirmer le paiement</button>
+      <button class="btn" type="submit" name="action" value="refuser">Refuser</button>
+    </form>
+    {% else %}
+      <p><a class="btn" href="{% url 'payment_return' tx.reference %}">Voir le résultat</a></p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

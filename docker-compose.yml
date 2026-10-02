@@ -1,0 +1,30 @@
+# Déploiement sur un petit serveur (VPS) : application + HTTPS automatique (Caddy).
+# Voir docs/05-guide-technique.md, section « Mettre en ligne ».
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////app/data/db.sqlite3}
+    volumes:
+      - ./data:/app/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

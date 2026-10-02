@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d7346">
+  <title>Connexion · ScolaPay</title>
+  <link rel="stylesheet" href="{% static 'ecoles/style.css' %}?v=1">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="card login-card">
+    <div class="brand-big">Scola<span>Pay</span></div>
+    <p class="muted" style="text-align:center">Les scolarités encaissées, sans stress.</p>
+    {% if form.errors %}
+      <ul class="messages"><li class="error">Identifiant ou mot de passe incorrect.</li></ul>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="field">
+        <label for="id_username">Identifiant</label>
+        <input type="text" name="username" id="id_username" autocomplete="username" autocapitalize="none" required autofocus value="{{ form.username.value|default:'' }}">
+      </div>
+      <div class="field">
+        <label for="id_password">Mot de passe</label>
+        <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn primary block" type="submit">Se connecter</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends staff_view|yesno:"ecoles/base.html,ecoles/public_base.html" %}
+{% load scolapay %}
+{% block title %}Reçu {{ payment.receipt_label }}{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol student=payment.enrollment.student %}
+{% if not staff_view %}
+  {% if payment.is_cancelled %}
+    <ul class="messages"><li class="error">Ce reçu a été ANNULÉ par l'établissement le {{ payment.cancelled_at|date:"d/m/Y" }}.</li></ul>
+  {% else %}
+    <div class="verified">✓ Reçu authentique, enregistré par {{ school.name }}.</div>
+  {% endif %}
+{% endif %}
+
+<div class="receipt">
+  {% if payment.is_cancelled %}<div class="stamp-cancelled">ANNULÉ</div>{% endif %}
+  <div class="receipt-head">
+    <div>
+      <h1>{{ school.name }}</h1>
+      <small>{{ school.address }}{% if school.city %} — {{ school.city }}{% endif %}{% if school.phone %}<br>Tél. {{ school.phone }}{% endif %}</small>
+    </div>
+    <div class="receipt-number">
+      <div>REÇU DE PAIEMENT</div>
+      <strong>N° {{ payment.receipt_label }}</strong><br>
+      <small>du {{ payment.paid_on|date:"d/m/Y" }}</small>
+    </div>
+  </div>
+  <dl>
+    <dt>Élève</dt><dd>{{ student.full_name }}{% if student.matricule %} ({{ student.matricule }}){% endif %}</dd>
+    <dt>Classe</dt><dd>{{ payment.enrollment.classroom.name }} — {{ payment.enrollment.year.name }}</dd>
+    {% if student.parent_name %}<dt>Versé par</dt><dd>{{ student.parent_name }}</dd>{% endif %}
+    <dt>Montant</dt><dd style="font-size:1.25rem">{{ payment.amount|money:cur }}</dd>
+    <dt>Mode</dt><dd>{{ payment.get_method_display }}{% if payment.reference %} — réf. {{ payment.reference }}{% endif %}</dd>
+    {% if payment.note %}<dt>Objet</dt><dd>{{ payment.note }}</dd>{% endif %}
+    {% if staff_view and not payment.is_cancelled %}<dt>Reste à payer</dt><dd>{{ remaining_after|money:cur }} <small class="muted">(après ce versement)</small></dd>{% endif %}
+  </dl>
+  <div class="words">Arrêté le présent reçu à la somme de <strong>{{ amount_words }}</strong> ({{ payment.amount|money:cur }}).</div>
+  <div class="receipt-foot">
+    <div>
+      <small>Encaissé par : {% if payment.recorded_by %}{{ payment.recorded_by.get_full_name|default:payment.recorded_by.get_username }}{% else %}paiement en ligne{% endif %}</small><br>
+      {% if school.receipt_footer %}<small>{{ school.receipt_footer }}</small><br>{% endif %}
+      <small>Enregistré le {{ payment.created_at|date:"d/m/Y à H:i" }}</small>
+      {% if payment.is_cancelled %}<br><small style="color:var(--danger)">Annulé : {{ payment.cancel_reason }}</small>{% endif %}
+    </div>
+    {% if qr %}
+    <div class="qr" style="text-align:center">{{ qr }}<br><small>Scannez pour vérifier</small></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="no-print" style="max-width:720px;margin:0 auto;display:flex;gap:.5rem;flex-wrap:wrap">
+  {% if staff_view %}
+    <button class="btn" type="button" onclick="window.print()">Imprimer</button>
+    {% if not payment.is_cancelled %}<a class="btn whatsapp" href="{{ whatsapp_link }}" target="_blank" rel="noopener">Envoyer le reçu au parent (WhatsApp)</a>{% endif %}
+    <a class="btn" href="{% url 'student_detail' payment.enrollment.pk %}">Fiche élève</a>
+  {% else %}
+    <a class="btn primary" href="{{ portal_url }}">Voir le solde de l'élève</a>
+  {% endif %}
+</div>
+
+{% if staff_view and staff.is_director and not payment.is_cancelled %}
+<details class="card no-print" style="max-width:720px;margin:16px auto 0">
+  <summary>Annuler ce reçu (direction)</summary>
+  <form method="post" action="{% url 'payment_cancel' payment.pk %}" style="margin-top:.75rem">
+    {% csrf_token %}
+    {% include "ecoles/_form_fields.html" with form=cancel_form %}
+    <button class="btn danger" type="submit">Confirmer l'annulation</button>
+  </form>
+</details>
+{% endif %}
+{% endwith %}
+{% endblock %}

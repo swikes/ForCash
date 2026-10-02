@@ -1,0 +1,81 @@
+{% extends "ecoles/public_base.html" %}
+{% load scolapay %}
+{% block title %}{{ student.first_name }} — {{ school.name }}{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<h1>{{ student.first_name }} {{ student.last_name }}</h1>
+<p class="muted">{% if enrollment %}{{ enrollment.classroom.name }} · Année {{ enrollment.year.name }}{% else %}Pas d'inscription pour l'année en cours.{% endif %}</p>
+
+{% if balance %}
+<div class="kpis">
+  <div class="kpi {% if balance.overdue %}bad{% else %}good{% endif %}">
+    <div class="label">À régler maintenant</div>
+    <div class="value">{{ balance.overdue|money:cur }}</div>
+    <div class="hint"><span class="badge {{ balance.status }}">{{ balance.status_label }}</span></div>
+  </div>
+  <div class="kpi brand">
+    <div class="label">Déjà payé</div>
+    <div class="value">{{ balance.paid|money:cur }}</div>
+    <div class="bar" style="margin-top:.35rem"><span style="width: {{ balance.progress }}%"></span></div>
+  </div>
+  <div class="kpi gold">
+    <div class="label">Reste sur l'année</div>
+    <div class="value">{{ balance.remaining|money:cur }}</div>
+  </div>
+</div>
+
+{% if form %}
+<section class="card">
+  <h2>Payer par mobile money</h2>
+  <form method="post" action="{% url 'parent_pay' student.token %}">
+    {% csrf_token %}
+    {% include "ecoles/_form_fields.html" %}
+    <button class="btn primary block" type="submit">Payer maintenant</button>
+  </form>
+  <p style="margin-top:.5rem"><small>Vous serez redirigé vers la page sécurisée de paiement. Le reçu s'affiche ici dès la confirmation de l'opérateur.</small></p>
+</section>
+{% endif %}
+
+{% if school.payment_instructions and balance.remaining > 0 %}
+<section class="card">
+  <h2>{% if form %}Autres moyens de paiement{% else %}Comment payer{% endif %}</h2>
+  <p>{{ school.payment_instructions|linebreaksbr }}</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Échéancier</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Échéance</th><th>Date limite</th><th class="num">Montant</th><th>État</th></tr></thead>
+      <tbody>
+      {% for line in balance.lines %}
+        <tr><td>{{ line.label }}</td><td class="nowrap">{{ line.due_date|date:"d/m/Y" }}</td><td class="num">{{ line.amount|amount }}</td><td><span class="badge {{ line.state }}">{{ line.state_label }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Vos reçus</h2>
+  {% for p in payments %}
+    <p style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:.4rem">
+      <a href="{% url 'public_receipt' p.token %}">Reçu {{ p.receipt_label }} du {{ p.paid_on|date:"d/m/Y" }}</a>
+      <strong class="num">{{ p.amount|money:cur }}</strong>
+    </p>
+  {% empty %}
+    <p class="muted">Aucun paiement enregistré pour le moment.</p>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if previous %}
+<section class="card">
+  <h2>Arriérés des années précédentes</h2>
+  {% for other, b in previous %}<p>{{ other.year.name }} ({{ other.classroom.name }}) : <strong>{{ b.remaining|money:cur }}</strong></p>{% endfor %}
+</section>
+{% endif %}
+<p class="muted"><small>Une erreur ? Contactez le secrétariat{% if school.phone %} au {{ school.phone }}{% endif %} avec votre reçu.</small></p>
+{% endwith %}
+{% endblock %}

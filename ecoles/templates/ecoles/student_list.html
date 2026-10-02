@@ -1,0 +1,67 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Élèves{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Élèves</h1>
+    <small>{{ totals.students }} élève{{ totals.students|pluralize }} · payé {{ totals.paid|money:cur }} · impayé exigible {{ totals.overdue|money:cur }}</small>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'student_import' %}">Importer (Excel/CSV)</a>
+    <a class="btn" href="?{{ querystring }}{% if querystring %}&amp;{% endif %}format=csv">Exporter</a>
+    <a class="btn primary" href="{% url 'student_create' %}">+ Nouvel élève</a>
+  </div>
+</div>
+
+<form class="card filters" method="get">
+  <div>
+    <label for="q">Recherche</label>
+    <input type="search" id="q" name="q" value="{{ filters.q }}" placeholder="Nom, matricule, parent, téléphone">
+  </div>
+  <div>
+    <label for="classe">Classe</label>
+    <select id="classe" name="classe">
+      <option value="">Toutes</option>
+      {% for c in classrooms %}<option value="{{ c.pk }}" {% if filters.classe == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="statut">Statut</label>
+    <select id="statut" name="statut">
+      <option value="">Tous</option>
+      <option value="en_retard" {% if filters.statut == "en_retard" %}selected{% endif %}>En retard</option>
+      <option value="a_jour" {% if filters.statut == "a_jour" %}selected{% endif %}>À jour</option>
+      <option value="solde" {% if filters.statut == "solde" %}selected{% endif %}>Soldé</option>
+    </select>
+  </div>
+  <button class="btn primary" type="submit">Filtrer</button>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Élève</th><th>Classe</th><th class="hide-sm">Parent</th><th class="num">Payé</th><th class="num">Impayé</th><th>Statut</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for enrollment, balance in rows %}
+        <tr>
+          <td><a href="{% url 'student_detail' enrollment.pk %}"><strong>{{ enrollment.student.full_name }}</strong></a>{% if enrollment.student.matricule %}<br><small>{{ enrollment.student.matricule }}</small>{% endif %}</td>
+          <td>{{ enrollment.classroom.name }}</td>
+          <td class="hide-sm">{{ enrollment.student.parent_name }}<br><small>{{ enrollment.student.parent_phone }}</small></td>
+          <td class="num">{{ balance.paid|amount }}<br><small>/ {{ balance.total|amount }}</small></td>
+          <td class="num">{% if balance.overdue %}<strong style="color:var(--danger)">{{ balance.overdue|amount }}</strong>{% else %}—{% endif %}</td>
+          <td><span class="badge {{ balance.status }}">{{ balance.status_label }}</span></td>
+          <td class="right"><a class="btn small primary" href="{% url 'payment_create' enrollment.pk %}">Encaisser</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">Aucun élève ne correspond.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

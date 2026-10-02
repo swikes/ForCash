@@ -1,0 +1,114 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}Tableau de bord{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>Tableau de bord</h1>
+    <small>Situation au {% now "d/m/Y" %} — {{ totals.students }} élève{{ totals.students|pluralize }} inscrit{{ totals.students|pluralize }}</small>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'student_create' %}">+ Élève</a>
+    <a class="btn primary" href="{% url 'reminders' %}">Relancer les retards</a>
+  </div>
+</div>
+
+{% if no_schedule %}
+<div class="callout">{{ no_schedule }} classe{{ no_schedule|pluralize }} sans barème : leurs élèves n'ont aucun montant dû. <a href="{% url 'classes' %}">Affecter un barème</a></div>
+{% endif %}
+
+<div class="kpis">
+  <div class="kpi {% if totals.recovery_rate >= 85 %}good{% else %}bad{% endif %}">
+    <div class="label">Taux de recouvrement</div>
+    <div class="value">{{ totals.recovery_rate }} %</div>
+    <div class="hint">de ce qui est exigible à ce jour</div>
+  </div>
+  <div class="kpi bad">
+    <div class="label">Impayés exigibles</div>
+    <div class="value">{{ totals.overdue|money:cur }}</div>
+    <div class="hint">{{ totals.late_students }} élève{{ totals.late_students|pluralize }} en retard</div>
+  </div>
+  <div class="kpi brand">
+    <div class="label">Encaissé (année)</div>
+    <div class="value">{{ totals.paid|money:cur }}</div>
+    <div class="hint">sur {{ totals.total|money:cur }} attendus</div>
+  </div>
+  <div class="kpi gold">
+    <div class="label">Encaissé ce mois</div>
+    <div class="value">{{ month_total|money:cur }}</div>
+    <div class="hint">aujourd'hui : {{ today_total|money:cur }} · 7 jours : {{ week_total|money:cur }}</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Recouvrement par classe</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Classe</th><th class="num">Exigible</th><th class="num">Impayé</th><th>Taux</th></tr></thead>
+        <tbody>
+        {% for classroom, t in classes %}
+          <tr>
+            <td><a href="{% url 'student_list' %}?classe={{ classroom.pk }}">{{ classroom.name }}</a> <small>({{ t.students }})</small></td>
+            <td class="num">{{ t.due_to_date|amount }}</td>
+            <td class="num">{% if t.overdue %}<a href="{% url 'reminders' %}?classe={{ classroom.pk }}">{{ t.overdue|amount }}</a>{% else %}0{% endif %}</td>
+            <td style="min-width:120px">
+              <div class="bar {% if t.recovery_rate < 60 %}bad{% elif t.recovery_rate < 85 %}warn{% endif %}"><span style="width: {{ t.recovery_rate }}%"></span></div>
+              <small>{{ t.recovery_rate }} %</small>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="muted">Aucun élève pour l'instant. <a href="{% url 'student_import' %}">Importer une liste</a> ou <a href="{% url 'student_create' %}">ajouter un élève</a>.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>Encaissements du mois par mode</h2>
+      {% for row in by_method %}
+        <div style="display:flex;justify-content:space-between;gap:1rem">
+          <span>{{ row.label }} <small>({{ row.count }})</small></span><strong class="num">{{ row.total|money:cur }}</strong>
+        </div>
+        <div class="bar" style="margin:.25rem 0 .6rem"><span style="width: {{ row.total|percent_of:month_total }}%"></span></div>
+      {% empty %}
+        <p class="muted">Aucun encaissement ce mois-ci.</p>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <h2>À surveiller</h2>
+      <ul style="margin:0;padding-left:1.1rem">
+        {% if next_installment %}<li>Prochaine échéance : <strong>{{ next_installment.label }}</strong> le {{ next_installment.due_date|date:"d/m/Y" }} ({{ next_installment.schedule.name }}).</li>{% endif %}
+        <li>{{ reminders_this_week }} relance{{ reminders_this_week|pluralize }} envoyée{{ reminders_this_week|pluralize }} ces 7 derniers jours.</li>
+        <li>Reste à encaisser sur l'année : <strong>{{ totals.remaining|money:cur }}</strong>.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<section class="card">
+  <div class="page-head" style="margin-bottom:.5rem"><h2 style="margin:0">Derniers paiements</h2><div class="actions"><a class="btn small" href="{% url 'cash_journal' %}">Journal de caisse</a></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Reçu</th><th>Élève</th><th class="hide-sm">Mode</th><th class="num">Montant</th></tr></thead>
+      <tbody>
+      {% for p in recent_payments %}
+        <tr>
+          <td class="nowrap">{{ p.paid_on|date:"d/m" }}</td>
+          <td><a href="{% url 'payment_receipt' p.pk %}">{{ p.receipt_label }}</a></td>
+          <td><a href="{% url 'student_detail' p.enrollment.pk %}">{{ p.enrollment.student.full_name }}</a> <small>{{ p.enrollment.classroom.name }}</small></td>
+          <td class="hide-sm">{{ p.get_method_display }}</td>
+          <td class="num">{{ p.amount|amount }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">Aucun paiement enregistré.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endwith %}
+{% endblock %}

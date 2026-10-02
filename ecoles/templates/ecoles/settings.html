@@ -1,0 +1,51 @@
+{% extends "ecoles/base.html" %}
+{% block title %}Paramètres{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Paramètres de l'établissement</h1></div>
+<div class="grid grid-2">
+  <form method="post" class="card">
+    {% csrf_token %}
+    <h2>Établissement, paiements et relances</h2>
+    {% include "ecoles/_form_fields.html" %}
+    <p><small>Paiement en ligne via CinetPay : l'argent arrive directement sur le compte marchand de l'école.
+      URL de notification à déclarer si besoin : <code>{{ notify_url }}</code></small></p>
+    <button class="btn primary" type="submit">Enregistrer</button>
+  </form>
+  <div>
+    <section class="card">
+      <div class="page-head" style="margin-bottom:.5rem"><h2 style="margin:0">Personnel</h2><div class="actions"><a class="btn small primary" href="{% url 'staff_create' %}">+ Ajouter</a></div></div>
+      <table>
+        <tbody>
+        {% for m in staff_members %}
+          <tr>
+            <td>{{ m.user.get_full_name|default:m.user.username }}<br><small>{{ m.user.username }} · {{ m.get_role_display }}</small></td>
+            <td>{% if m.user.is_active %}<span class="badge a_jour">actif</span>{% else %}<span class="badge neutral">désactivé</span>{% endif %}</td>
+            <td class="right">
+              {% if m.user != request.user %}
+              <form method="post" action="{% url 'staff_toggle' m.pk %}" class="inline-form">{% csrf_token %}<button class="btn small" type="submit">{% if m.user.is_active %}Désactiver{% else %}Réactiver{% endif %}</button></form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p style="margin-top:.75rem"><small>Un caissier peut encaisser et relancer, mais ne peut ni annuler un reçu, ni accorder de remise.</small></p>
+    </section>
+    <section class="card">
+      <div class="page-head" style="margin-bottom:.5rem"><h2 style="margin:0">Années scolaires</h2><div class="actions"><a class="btn small primary" href="{% url 'year_create' %}">+ Nouvelle année</a></div></div>
+      <table>
+        <tbody>
+        {% for y in years %}
+          <tr>
+            <td>{{ y.name }}<br><small>{{ y.start_date|date:"d/m/Y" }} → {{ y.end_date|date:"d/m/Y" }}</small></td>
+            <td class="right">{% if y.is_current %}<span class="badge a_jour">en cours</span>{% else %}<form method="post" action="{% url 'year_activate' y.pk %}" class="inline-form">{% csrf_token %}<button class="btn small" type="submit">Activer</button></form>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="muted">Aucune année.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
+{% endblock %}

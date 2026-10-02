@@ -1,0 +1,126 @@
+{% extends "ecoles/base.html" %}
+{% load scolapay %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block content %}
+{% with cur=school.currency_symbol %}
+<div class="page-head">
+  <div>
+    <h1>{{ student.full_name }}</h1>
+    <small>{{ enrollment.classroom.name }} · {{ enrollment.year.name }}{% if student.matricule %} · Matricule {{ student.matricule }}{% endif %}{% if not enrollment.is_active %} · <span class="badge neutral">a quitté l'école</span>{% endif %}</small>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'student_edit' enrollment.pk %}">Modifier</a>
+    {% if balance.remaining > 0 %}<a class="btn primary" href="{% url 'payment_create' enrollment.pk %}">Encaisser un paiement</a>{% endif %}
+  </div>
+</div>
+
+<div class="kpis">
+  <div class="kpi {% if balance.overdue %}bad{% else %}good{% endif %}">
+    <div class="label">Impayé exigible</div>
+    <div class="value">{{ balance.overdue|money:cur }}</div>
+    <div class="hint"><span class="badge {{ balance.status }}">{{ balance.status_label }}</span></div>
+  </div>
+  <div class="kpi brand">
+    <div class="label">Payé</div>
+    <div class="value">{{ balance.paid|money:cur }}</div>
+    <div class="bar" style="margin-top:.35rem"><span style="width: {{ balance.progress }}%"></span></div>
+  </div>
+  <div class="kpi gold">
+    <div class="label">Reste à payer (année)</div>
+    <div class="value">{{ balance.remaining|money:cur }}</div>
+    <div class="hint">Total dû : {{ balance.total|money:cur }}{% if enrollment.discount %} (remise {{ enrollment.discount|amount }}){% endif %}</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Échéancier</h2>
+    {% if not enrollment.classroom.schedule %}
+      <div class="callout">La classe {{ enrollment.classroom.name }} n'a pas de barème. <a href="{% url 'classes' %}">Affecter un barème</a></div>
+    {% endif %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Échéance</th><th>Date limite</th><th class="num">Montant</th><th class="num">Payé</th><th>État</th></tr></thead>
+        <tbody>
+        {% for line in balance.lines %}
+          <tr>
+            <td>{{ line.label }}</td>
+            <td class="nowrap">{{ line.due_date|date:"d/m/Y" }}</td>
+            <td class="num">{{ line.amount|amount }}</td>
+            <td class="num">{{ line.paid|amount }}</td>
+            <td><span class="badge {{ line.state }}">{{ line.state_label }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card stack">
+    <h2>Parent / tuteur</h2>
+    <p><strong>{{ student.parent_name|default:"—" }}</strong><br>
+      {{ student.parent_phone|default:"Pas de téléphone" }}{% if student.parent_phone2 %} · {{ student.parent_phone2 }}{% endif %}</p>
+    {% if balance.remaining > 0 %}
+      <h3>Message de relance</h3>
+      <div class="message-preview">{{ reminder_text }}</div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <form method="post" action="{% url 'reminder_send' enrollment.pk %}" target="_blank" class="inline-form">
+          {% csrf_token %}<input type="hidden" name="canal" value="whatsapp">
+          <button class="btn whatsapp" type="submit">Envoyer sur WhatsApp</button>
+        </form>
+        <form method="post" action="{% url 'reminder_send' enrollment.pk %}" class="inline-form">
+          {% csrf_token %}<input type="hidden" name="canal" value="appel"><input type="hidden" name="next" value="{{ request.path }}">
+          <button class="btn" type="submit">Noter un appel</button>
+        </form>
+      </div>
+      {% if not student.whatsapp_phone %}<small>Numéro absent ou invalide : WhatsApp vous laissera choisir le contact.</small>{% endif %}
+    {% endif %}
+    <h3 style="margin-top:1rem">Espace parent</h3>
+    <p><small>Le parent y voit son solde, ses reçus{% if school.online_payment_provider %} et peut payer en ligne{% endif %}.</small><br>
+      <a href="{{ portal_url }}" target="_blank" rel="noopener">{{ portal_url }}</a></p>
+    {% if student.notes %}<h3>Notes</h3><p>{{ student.notes|linebreaksbr }}</p>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>Paiements</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Reçu</th><th>Mode</th><th class="hide-sm">Référence</th><th class="hide-sm">Saisi par</th><th class="num">Montant</th></tr></thead>
+      <tbody>
+      {% for p in payments %}
+        <tr class="{% if p.is_cancelled %}cancelled{% endif %}">
+          <td class="nowrap">{{ p.paid_on|date:"d/m/Y" }}</td>
+          <td><a href="{% url 'payment_receipt' p.pk %}">{{ p.receipt_label }}</a>{% if p.is_cancelled %} <span class="badge en_retard">annulé</span>{% endif %}</td>
+          <td>{{ p.get_method_display }}</td>
+          <td class="hide-sm">{{ p.reference }}</td>
+          <td class="hide-sm">{{ p.recorded_by.get_username|default:"en ligne" }}</td>
+          <td class="num">{{ p.amount|amount }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">Aucun paiement.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if reminders %}
+<section class="card">
+  <h2>Historique des relances</h2>
+  <ul style="margin:0;padding-left:1.1rem">
+    {% for r in reminders %}<li>{{ r.created_at|date:"d/m/Y H:i" }} — {{ r.get_channel_display }} par {{ r.sent_by.get_username|default:"?" }} ({{ r.amount_due|money:cur }})</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if other_years %}
+<section class="card">
+  <h2>Autres années</h2>
+  <ul style="margin:0;padding-left:1.1rem">
+    {% for other, b in other_years %}<li><a href="{% url 'student_detail' other.pk %}">{{ other.year.name }} — {{ other.classroom.name }}</a> : payé {{ b.paid|money:cur }} / {{ b.total|money:cur }}{% if b.remaining > 0 %} · <strong style="color:var(--danger)">reste {{ b.remaining|money:cur }}</strong>{% endif %}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endwith %}
+{% endblock %}
